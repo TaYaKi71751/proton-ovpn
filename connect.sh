@@ -15,7 +15,7 @@ do
 	if ( echo $__COOKIE_PATH__ | grep 'cookies.sqlite' );then
 	 __COOKIE_STRING_TEMP__="$(sqlite3 << EOF
 .open "${__COOKIE_PATH__}"
-SELECT name,value FROM moz_cookies WHERE host = "account.proton.me";
+SELECT name,value FROM moz_cookies WHERE host = 'account.proton.me';
 EOF
 )"
   while IFS= read -r __COOKIE_STRING__
