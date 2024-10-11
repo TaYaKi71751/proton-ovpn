@@ -62,7 +62,8 @@ function run_openvpn(){
 			--data-ciphers ${TARGET_CIPHER} \
 			--data-ciphers-fallback ${TARGET_CIPHER} \
 			--config "$OPENVPN_CONFIG_PATH" \
-			--auth-user-path /tmp/askpass.txt
+			--askpass /dev/stdin << EOF
+${__AUTH_INFO__}
 EOF
 }
 echo $TARGET_CIPHER
