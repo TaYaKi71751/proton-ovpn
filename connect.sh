@@ -50,21 +50,20 @@ __AUTH_INFO__="$(node << EOF
 	console.log(\`\${result.VPNSettings.Name}\\n\${result.VPNSettings.Password}\`)
 EOF
 )"
-rm /tmp/askpass.txt
+cp "${OPENVPN_CONFIG_PATH}" /tmp/tmp.ovpn
+echo "<auth-user-pass>" >> /tmp/tmp.ovpn
 while IFS= read -r __LINE__
 do
-	echo "$__LINE__" >> /tmp/askpass.txt
+	echo "$__LINE__" >> /tmp/tmp.ovpn
 done < <(printf '%s\n' "${__AUTH_INFO__}")
+echo "</auth-user-pass>" >> /tmp/tmp.ovpn
 
 TARGET_CIPHER="$(cat "${OPENVPN_CONFIG_PATH}" | grep "^cipher" | rev | cut -d ' ' -f1 | rev | tr -d ' ' | tr -d '\r' | tr -d '\n')"
 function run_openvpn(){
 		sudo openvpn \
 			--data-ciphers ${TARGET_CIPHER} \
 			--data-ciphers-fallback ${TARGET_CIPHER} \
-			--config "$OPENVPN_CONFIG_PATH" \
-			--askpass /dev/stdin << EOF
-${__AUTH_INFO__}
-EOF
+			--config "/tmp/tmp.ovpn"
 }
 echo $TARGET_CIPHER
 sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
