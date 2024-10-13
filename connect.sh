@@ -1,4 +1,6 @@
 #!/bin/bash
+# exec 2>&1
+# exec > >(tee file.log)
 
 __APP_VERSION__="web-account@5.0.153.3"
 __UID__=""
@@ -45,17 +47,14 @@ do
 		__COOKIE_STRING_RESULT__="${__COOKIE_STRING_RESULT__}$(echo $__SET_COOKIE__ | cut -f1 -d ';' | rev | cut -f1 -d ':' | tr -d ' ' | rev);"
 	fi
 done < <(printf '%s\n' "${__SET_COOKIES__}")
-__AUTH_INFO__="$(node << EOF
- const result = JSON.parse(\`$(curl -X PUT 'https://account.proton.me/api/vpn/settings/reset' --compressed --user-agent "${__USER_AGENT__}" -H "x-pm-appversion: ${__APP_VERSION__}" -H "x-pm-locale: ${__LOCALE__}" -H "x-pm-uid: ${__UID__}" --cookie "${__COOKIE_STRING_RESULT__}")\`);
-	console.log(\`\${result.VPNSettings.Name}\\n\${result.VPNSettings.Password}\`)
-EOF
-)"
+__RESET_RESPONSE__="$(curl -X PUT 'https://account.proton.me/api/vpn/settings/reset' --compressed --user-agent "${__USER_AGENT__}" -H "x-pm-appversion: ${__APP_VERSION__}" -H "x-pm-locale: ${__LOCALE__}" -H "x-pm-uid: ${__UID__}" --cookie "${__COOKIE_STRING_RESULT__}")"
+echo "${__RESET_RESPONSE__}"
+__USERNAME__="$(echo ${__RESET_RESPONSE__} | jq -r ".VPNSettings.Name")"
+__PASSWORD__="$(echo ${__RESET_RESPONSE__} | jq -r ".VPNSettings.Password")"
 cp "${OPENVPN_CONFIG_PATH}" /tmp/tmp.ovpn
 echo "<auth-user-pass>" >> /tmp/tmp.ovpn
-while IFS= read -r __LINE__
-do
-	echo "$__LINE__" >> /tmp/tmp.ovpn
-done < <(printf '%s\n' "${__AUTH_INFO__}")
+echo "$__USERNAME__" >> /tmp/tmp.ovpn
+echo "$__PASSWORD__" >> /tmp/tmp.ovpn
 echo "</auth-user-pass>" >> /tmp/tmp.ovpn
 
 TARGET_CIPHER="$(cat "${OPENVPN_CONFIG_PATH}" | grep "^cipher" | rev | cut -d ' ' -f1 | rev | tr -d ' ' | tr -d '\r' | tr -d '\n')"
@@ -70,3 +69,4 @@ sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
 
 # https://www.reddit.com/r/PrivateInternetAccess/comments/j1iyl7/openvpn_client_no_longer_connects_cipher_not/?rdt=54856
 run_openvpn
+
